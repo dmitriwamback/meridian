@@ -3,3 +3,141 @@
 //
 
 #include "PipelineManager.h"
+#include <stdexcept>
+
+PipelineManager::~PipelineManager() {
+}
+
+void PipelineManager::CreatePipeline(
+    const std::string& name,
+    VkDevice device,
+    VkRenderPass renderPass,
+    VkPipelineLayout pipelineLayout,
+    const std::string& vertexShaderPath,
+    const std::string& fragmentShaderPath
+) {
+    if (pipelines.find(name) != pipelines.end()) {
+        throw std::runtime_error("Pipeline with name '" + name + "' already exists!");
+    }
+
+    this->device = device;
+
+    auto pipeline = std::make_unique<Pipeline>();
+    pipeline->Create(device, renderPass, pipelineLayout, vertexShaderPath, fragmentShaderPath);
+    pipelines[name] = std::move(pipeline);
+}
+
+void PipelineManager::CreateStandardPipeline(
+    const std::string& name,
+    VkDevice device,
+    VkRenderPass renderPass,
+    VkPipelineLayout pipelineLayout,
+    const std::string& vertexShaderPath,
+    const std::string& fragmentShaderPath
+) {
+    if (standardPipelines.find(name) != standardPipelines.end()) {
+        throw std::runtime_error("Standard pipeline with name '" + name + "' already exists!");
+    }
+
+    this->device = device;
+
+    auto pipeline = std::make_unique<StandardPipeline>();
+    pipeline->Create(device, renderPass, pipelineLayout, vertexShaderPath, fragmentShaderPath);
+    standardPipelines[name] = std::move(pipeline);
+}
+
+void PipelineManager::CreateStandardPipelineDebug(
+    const std::string& name,
+    VkDevice device,
+    VkRenderPass renderPass,
+    VkPipelineLayout pipelineLayout
+) {
+    if (standardPipelines.find(name) != standardPipelines.end()) {
+        throw std::runtime_error("Standard pipeline with name '" + name + "' already exists!");
+    }
+
+    this->device = device;
+
+    auto pipeline = std::make_unique<StandardPipeline>();
+    pipeline->CreateDefaultDebug(device, renderPass, pipelineLayout);
+    standardPipelines[name] = std::move(pipeline);
+}
+
+void PipelineManager::CreateGBufferPipeline(
+    const std::string& name,
+    VkDevice device,
+    VkRenderPass gbufferRenderPass,
+    VkPipelineLayout pipelineLayout,
+    const std::string& vertexShaderPath,
+    const std::string& fragmentShaderPath
+) {
+    if (gbufferPipelines.find(name) != gbufferPipelines.end()) {
+        throw std::runtime_error("G-buffer pipeline with name '" + name + "' already exists!");
+    }
+
+    this->device = device;
+
+    auto pipeline = std::make_unique<GBufferPipeline>();
+    pipeline->Create(device, gbufferRenderPass, pipelineLayout, vertexShaderPath, fragmentShaderPath);
+    gbufferPipelines[name] = std::move(pipeline);
+}
+
+Pipeline* PipelineManager::GetPipeline(const std::string& name) {
+    auto it = pipelines.find(name);
+    if (it == pipelines.end()) {
+        throw std::runtime_error("Pipeline '" + name + "' not found!");
+    }
+    return it->second.get();
+}
+
+const Pipeline* PipelineManager::GetPipeline(const std::string& name) const {
+    auto it = pipelines.find(name);
+    if (it == pipelines.end()) {
+        throw std::runtime_error("Pipeline '" + name + "' not found!");
+    }
+    return it->second.get();
+}
+
+StandardPipeline* PipelineManager::GetStandardPipeline(const std::string& name) {
+    auto it = standardPipelines.find(name);
+    if (it == standardPipelines.end()) {
+        throw std::runtime_error("Standard pipeline '" + name + "' not found!");
+    }
+    return it->second.get();
+}
+
+const StandardPipeline* PipelineManager::GetStandardPipeline(const std::string& name) const {
+    auto it = standardPipelines.find(name);
+    if (it == standardPipelines.end()) {
+        throw std::runtime_error("Standard pipeline '" + name + "' not found!");
+    }
+    return it->second.get();
+}
+
+GBufferPipeline* PipelineManager::GetGBufferPipeline(const std::string& name) {
+    auto it = gbufferPipelines.find(name);
+    if (it == gbufferPipelines.end()) {
+        throw std::runtime_error("G-buffer pipeline '" + name + "' not found!");
+    }
+    return it->second.get();
+}
+
+const GBufferPipeline* PipelineManager::GetGBufferPipeline(const std::string& name) const {
+    auto it = gbufferPipelines.find(name);
+    if (it == gbufferPipelines.end()) {
+        throw std::runtime_error("G-buffer pipeline '" + name + "' not found!");
+    }
+    return it->second.get();
+}
+
+bool PipelineManager::HasPipeline(const std::string& name) const {
+    return pipelines.find(name) != pipelines.end() ||
+           standardPipelines.find(name) != standardPipelines.end() ||
+           gbufferPipelines.find(name) != gbufferPipelines.end();
+}
+
+void PipelineManager::Cleanup(VkDevice device) {
+    pipelines.clear();
+    standardPipelines.clear();
+    gbufferPipelines.clear();
+}
