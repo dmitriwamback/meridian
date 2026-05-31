@@ -83,6 +83,7 @@ public:
     static void CreateRenderPass(
         VkDevice device,
         VkFormat swapchainImageFormat,
+        VkFormat depthFormat,
         VkRenderPass& renderPass
     );
 
@@ -93,7 +94,8 @@ public:
         VkRenderPass renderPass,
         const std::vector<VkImageView>& swapchainImageViews,
         VkExtent2D swapchainExtent,
-        std::vector<VkFramebuffer>& framebuffers
+        std::vector<VkFramebuffer>& framebuffers,
+        VkImageView depthImageView
     );
 
     static void DestroyFramebuffers(VkDevice device, std::vector<VkFramebuffer>& framebuffers);
@@ -236,6 +238,16 @@ public:
         VkImage textureImage,
         VkImageView textureImageView,
         VkSampler textureSampler
+    );
+
+    static void CreateDepthImage(
+        VkDevice device,
+        VkPhysicalDevice physicalDevice,
+        VkExtent2D extent,
+        VkFormat depthFormat,
+        VkImage& depthImage,
+        VkDeviceMemory& depthImageMemory,
+        VkImageView& depthImageView
     );
 
 private:

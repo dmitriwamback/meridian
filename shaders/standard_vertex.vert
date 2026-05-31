@@ -14,11 +14,15 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 proj;
 } ubo;
 
+layout(push_constant) uniform PushConstants {
+    mat4 model;
+} pc;
+
 void main() {
 
-    fragp = vec3(ubo.model * vec4(position, 1.0));
-    normp = mat3(ubo.model) * normal;
+    fragp = vec3(pc.model * vec4(position, 1.0));
+    normp = mat3(pc.model) * normal;
     uvp = uv;
 
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(position, 1.0);
+    gl_Position = ubo.proj * ubo.view * pc.model * vec4(position, 1.0);
 }

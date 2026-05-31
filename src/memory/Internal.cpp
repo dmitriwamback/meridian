@@ -387,6 +387,7 @@ namespace Meridian {
     void Internal::CreateRenderPass(
         VkDevice device,
         VkFormat swapchainImageFormat,
+        VkFormat depthFormat,
         VkRenderPass& renderPass
     ) {
         VkAttachmentDescription colorAttachment{};
@@ -399,14 +400,31 @@ namespace Meridian {
         colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+        VkAttachmentDescription depthAttachment{};
+        depthAttachment.format = depthFormat;
+        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; // don't need to keep depth after pass
+        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentDescription attachments[] = {colorAttachment, depthAttachment};
+
         VkAttachmentReference colorRef{};
         colorRef.attachment = 0;
         colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depthRef{};
+        depthRef.attachment = 1;
+        depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         VkSubpassDescription subpass{};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &colorRef;
+        subpass.pDepthStencilAttachment = &depthRef;
 
         VkSubpassDependency dependency{};
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -418,8 +436,8 @@ namespace Meridian {
 
         VkRenderPassCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        createInfo.attachmentCount = 1;
-        createInfo.pAttachments = &colorAttachment;
+        createInfo.attachmentCount = 2;
+        createInfo.pAttachments = attachments;
         createInfo.subpassCount = 1;
         createInfo.pSubpasses = &subpass;
         createInfo.dependencyCount = 1;
@@ -439,17 +457,22 @@ namespace Meridian {
         VkRenderPass renderPass,
         const std::vector<VkImageView>& swapchainImageViews,
         VkExtent2D swapchainExtent,
-        std::vector<VkFramebuffer>& framebuffers
+        std::vector<VkFramebuffer>& framebuffers,
+        VkImageView depthImageView
     ) {
         framebuffers.resize(swapchainImageViews.size());
 
         for (size_t i = 0; i < swapchainImageViews.size(); i++) {
-            VkImageView attachments[] = {swapchainImageViews[i]};
+
+            VkImageView attachments[2] = {
+                swapchainImageViews[i],
+                depthImageView
+            };
 
             VkFramebufferCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
             createInfo.renderPass = renderPass;
-            createInfo.attachmentCount = 1;
+            createInfo.attachmentCount = 2;
             createInfo.pAttachments = attachments;
             createInfo.width = swapchainExtent.width;
             createInfo.height = swapchainExtent.height;
@@ -957,5 +980,80 @@ namespace Meridian {
 
         std::array<VkWriteDescriptorSet, 2> writes = {writeUBO, writeTexture};
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+    }
+
+    void Internal::CreateDepthImage(
+        VkDevice device,
+        VkPhysicalDevice physicalDevice,
+        VkExtent2D extent,
+        VkFormat depthFormat,
+        VkImage& depthImage,
+        VkDeviceMemory& depthImageMemory,
+        VkImageView& depthImageView)
+    {
+        // Create image
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.format = depthFormat;
+        imageInfo.extent = {extent.width, extent.height, 1};
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        if (vkCreateImage(device, &imageInfo, nullptr, &depthImage) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create depth image!");
+        }
+
+        // Allocate memory
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(device, depthImage, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+
+        VkPhysicalDeviceMemoryProperties memProperties;
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+        uint32_t memoryTypeIndex = VK_MAX_MEMORY_TYPES;
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i) {
+            if ((memRequirements.memoryTypeBits & (1 << i)) &&
+                (memProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)) {
+                memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        if (memoryTypeIndex == VK_MAX_MEMORY_TYPES) {
+            throw std::runtime_error("Failed to find suitable memory type for depth image!");
+        }
+
+        allocInfo.memoryTypeIndex = memoryTypeIndex;
+
+        if (vkAllocateMemory(device, &allocInfo, nullptr, &depthImageMemory) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate depth image memory!");
+        }
+
+        vkBindImageMemory(device, depthImage, depthImageMemory, 0);
+
+        // Create image view
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = depthImage;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = depthFormat;
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
+
+        if (vkCreateImageView(device, &viewInfo, nullptr, &depthImageView) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create depth image view!");
+        }
     }
 } // namespace Meridian

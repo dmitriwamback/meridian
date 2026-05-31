@@ -23,7 +23,7 @@ public:
     glm::vec3 position, lookDirection;
 
     float pitch, yaw;
-    float speed = 1.0f;
+    float speed = 0.5f;
 
     float lastMouseX, lastMouseY;
     int mouseButton = GLFW_MOUSE_BUTTON_RIGHT;

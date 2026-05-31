@@ -1,0 +1,13 @@
+//
+// Created by Dmitri Wamback on 2026-05-31.
+//
+
+#ifndef MERIDIAN_BLOOMVERTICALBLURPIPELINE_H
+#define MERIDIAN_BLOOMVERTICALBLURPIPELINE_H
+
+
+class BloomVerticalBlurPipeline {
+};
+
+
+#endif //MERIDIAN_BLOOMVERTICALBLURPIPELINE_H

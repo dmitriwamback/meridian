@@ -1,0 +1,13 @@
+//
+// Created by Dmitri Wamback on 2026-05-31.
+//
+
+#ifndef MERIDIAN_BLOOMDOWNSAMPLEPIPELINE_H
+#define MERIDIAN_BLOOMDOWNSAMPLEPIPELINE_H
+
+
+class BloomDownsamplePipeline {
+};
+
+
+#endif //MERIDIAN_BLOOMDOWNSAMPLEPIPELINE_H

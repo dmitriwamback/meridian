@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "../memory/Internal.h"
+#include "../core/buffer/PushConstants.h"
 
 Camera Renderer::camera;
 
@@ -76,13 +77,20 @@ void Renderer::CreatePipelineLayouts(VulkanResources& vulkan) {
         std::vector<VkDescriptorSetLayout> setLayouts(1);
         setLayouts[0] = vulkan.descriptorSetLayout;
 
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(PushConstants);
+
         VkPipelineLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         layoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
         layoutInfo.pSetLayouts = setLayouts.data();
+        layoutInfo.pushConstantRangeCount = 1;
+        layoutInfo.pPushConstantRanges = &pushConstantRange;
 
         if (vkCreatePipelineLayout(vulkan.device, &layoutInfo, nullptr, &standardPipelineLayout) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create standard pipeline layout!");
+            throw std::runtime_error("Failed to create standard pipeline layout with push constants");
         }
     }
 
@@ -215,14 +223,17 @@ void Renderer::Render(VulkanResources& vulkan) {
 
     testAsset.GetIndexBuffer().Bind(vulkan.commandBuffers[vulkan.currentFrame]);
 
-    vkCmdDrawIndexed(
-        vulkan.commandBuffers[vulkan.currentFrame],
-        testAsset.GetIndexBuffer().GetIndexCount(),
-        1,
-        0,
-        0,
-        0
-    );
+    for (int i = 0; i < 1000; i++) {
+
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(i * 5, 0.0f, 0.0f));
+
+        PushConstants pushConstants{};
+        pushConstants.model = model;
+
+        vkCmdPushConstants(vulkan.commandBuffers[vulkan.currentFrame], standardPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pushConstants);
+        vkCmdDrawIndexed(vulkan.commandBuffers[vulkan.currentFrame], testAsset.GetIndexBuffer().GetIndexCount(), 1, 0, 0, 0);
+    }
 
     vkCmdEndRenderPass(vulkan.commandBuffers[vulkan.currentFrame]);
 
@@ -300,7 +311,8 @@ void Renderer::RecreateSwapchain(VulkanResources& vulkan) {
         vulkan.renderPass,
         vulkan.swapchainImageViews,
         vulkan.swapchainExtent,
-        vulkan.framebuffers
+        vulkan.framebuffers,
+        vulkan.depthImageView
     );
 }
 
@@ -363,14 +375,13 @@ void Renderer::CursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
 }
 
 void Renderer::UpdateUniformBuffers(VulkanResources& vulkan) {
-    // Update uniform buffer with current camera matrices
+
     uniformBufferObject.model = glm::mat4(1.0f);
     uniformBufferObject.view = camera.view;
     uniformBufferObject.proj = camera.projection;
 
     uniformBuffer->Update(&uniformBufferObject, sizeof(uniformBufferObject));
 
-    // Update descriptor set to point to the updated uniform buffer
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = uniformBuffer->GetBuffer();
     bufferInfo.offset = 0;

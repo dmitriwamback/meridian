@@ -89,9 +89,22 @@ void Initialize(GLFWwindow* window, VulkanResources& resources) {
         resources.swapchainExtent
     );
 
+    resources.depthFormat = Meridian::Internal::FindDepthFormat(resources.physicalDevice);
+
+    Meridian::Internal::CreateDepthImage(
+        resources.device,
+        resources.physicalDevice,
+        resources.swapchainExtent,
+        resources.depthFormat,
+        resources.depthImage,
+        resources.depthImageMemory,
+        resources.depthImageView
+    );
+
     Meridian::Internal::CreateRenderPass(
         resources.device,
         resources.swapchainImageFormat,
+        resources.depthFormat,
         resources.renderPass
     );
 
@@ -100,7 +113,8 @@ void Initialize(GLFWwindow* window, VulkanResources& resources) {
         resources.renderPass,
         resources.swapchainImageViews,
         resources.swapchainExtent,
-        resources.framebuffers
+        resources.framebuffers,
+        resources.depthImageView
     );
 
     Meridian::Internal::CreateCommandPool(
@@ -141,6 +155,16 @@ void Initialize(GLFWwindow* window, VulkanResources& resources) {
 void Cleanup(VulkanResources& resources) {
 
     vkDeviceWaitIdle(resources.device);
+
+    if (resources.depthImageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(resources.device, resources.depthImageView, nullptr);
+    }
+    if (resources.depthImage != VK_NULL_HANDLE) {
+        vkDestroyImage(resources.device, resources.depthImage, nullptr);
+    }
+    if (resources.depthImageMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(resources.device, resources.depthImageMemory, nullptr);
+    }
 
     for (auto framebuffer : resources.framebuffers) {
         vkDestroyFramebuffer(resources.device, framebuffer, nullptr);
@@ -209,6 +233,7 @@ void RecreateSwapchain(GLFWwindow* window, VulkanResources& resources) {
     Meridian::Internal::CreateRenderPass(
         resources.device,
         resources.swapchainImageFormat,
+        resources.depthFormat,
         resources.renderPass
     );
 
@@ -217,7 +242,8 @@ void RecreateSwapchain(GLFWwindow* window, VulkanResources& resources) {
         resources.renderPass,
         resources.swapchainImageViews,
         resources.swapchainExtent,
-        resources.framebuffers
+        resources.framebuffers,
+        resources.depthImageView
     );
 }
 

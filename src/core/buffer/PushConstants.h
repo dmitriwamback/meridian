@@ -5,9 +5,10 @@
 #ifndef MERIDIAN_PUSHCONSTANTS_H
 #define MERIDIAN_PUSHCONSTANTS_H
 
+#include <glm/glm/glm.hpp>
 
-class PushConstants {
+struct PushConstants {
+    alignas(16) glm::mat4 model;  // 64 bytes, 16-byte aligned
 };
-
 
 #endif //MERIDIAN_PUSHCONSTANTS_H

@@ -43,6 +43,11 @@ struct VulkanResources {
     std::vector<VkDescriptorSet> descriptorSets;
 
     VkExtent2D windowExtent;
+    VkFormat depthFormat;
+
+    VkImage depthImage = VK_NULL_HANDLE;
+    VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
+    VkImageView depthImageView = VK_NULL_HANDLE;
 
     uint32_t currentFrame = 0;
 };
