@@ -17,8 +17,6 @@ void Renderer::Initialize(GLFWwindow* window, VulkanResources& vulkan) {
     }
 
     CreatePipelineLayouts(vulkan);
-    CreateDescriptorSets(vulkan);
-    SetupCommandBuffers(vulkan);
 
     pipelineManager.CreateStandardPipeline(
         "standard",
