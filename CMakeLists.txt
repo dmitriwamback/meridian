@@ -18,6 +18,8 @@ add_executable(meridian
     src/pipeline/Pipeline.cpp
     src/pipeline/types/GBufferPipeline.cpp
     src/pipeline/types/StandardPipeline.cpp
+    src/camera/Camera.cpp
+    src/core/objects/Asset.cpp
 )
 target_link_libraries(meridian "/opt/homebrew/Cellar/glew/2.2.0_1/lib/libGLEW.dylib")
 target_link_libraries(meridian "/opt/homebrew/Cellar/glfw/3.3.8/lib/libglfw.dylib")

@@ -8,6 +8,8 @@
 
 #include "../memory/Internal.h"
 
+Camera Renderer::camera;
+
 Renderer::~Renderer() {
 }
 
@@ -15,6 +17,13 @@ void Renderer::Initialize(GLFWwindow* window, VulkanResources& vulkan) {
     if (initialized) {
         throw std::runtime_error("Renderer already initialized!");
     }
+
+    camera = Camera();
+    camera.Initialize();
+
+    testAsset = Asset();
+    testAsset.Create();
+    testAsset.CreateBuffers(vulkan.device, vulkan.physicalDevice);
 
     CreatePipelineLayouts(vulkan);
 
@@ -61,27 +70,7 @@ void Renderer::CreatePipelineLayouts(VulkanResources& vulkan) {
         sizeof(UniformBufferObject)
     );
 
-    uniformBufferObject.model = glm::mat4();
-    uniformBufferObject.view = glm::mat4();
-    uniformBufferObject.proj = glm::mat4();
-
-    uniformBuffer->Update(&uniformBufferObject, sizeof(uniformBufferObject));
-
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = uniformBuffer->GetBuffer();
-    bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(UniformBufferObject);
-
-    VkWriteDescriptorSet write{};
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = vulkan.descriptorSets[vulkan.currentFrame];
-    write.dstBinding = 0;
-    write.dstArrayElement = 0;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write.descriptorCount = 1;
-    write.pBufferInfo = &bufferInfo;
-
-    vkUpdateDescriptorSets(vulkan.device, 1, &write, 0, nullptr);
+    UpdateUniformBuffers(vulkan);
 
     {
         std::vector<VkDescriptorSetLayout> setLayouts(1);
@@ -131,6 +120,19 @@ void Renderer::Render(VulkanResources& vulkan) {
         throw std::runtime_error("Renderer not initialized!");
     }
 
+    glm::vec4 movement(0.0f);
+    movement.x = glfwGetKey(vulkan.window, GLFW_KEY_W) == GLFW_PRESS ? 1.0f : 0.0f;
+    movement.y = glfwGetKey(vulkan.window, GLFW_KEY_S) == GLFW_PRESS ? -1.0f : 0.0f;
+    movement.z = glfwGetKey(vulkan.window, GLFW_KEY_A) == GLFW_PRESS ? 1.0f : 0.0f;
+    movement.w = glfwGetKey(vulkan.window, GLFW_KEY_D) == GLFW_PRESS ? -1.0f : 0.0f;
+
+    float up   = glfwGetKey(vulkan.window, GLFW_KEY_E) == GLFW_PRESS ? 1.0f : 0.0f;
+    float down = glfwGetKey(vulkan.window, GLFW_KEY_Q) == GLFW_PRESS ? -1.0f : 0.0f;
+
+    camera.Update(movement, up, down, vulkan);
+
+    UpdateUniformBuffers(vulkan);
+
     vkWaitForFences(vulkan.device, 1, &vulkan.inFlightFences[vulkan.currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -171,7 +173,7 @@ void Renderer::Render(VulkanResources& vulkan) {
     renderPassInfo.renderArea.extent = vulkan.swapchainExtent;
 
     std::vector<VkClearValue> clearValues(2);
-    clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};  // Black
+    clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -184,9 +186,9 @@ void Renderer::Render(VulkanResources& vulkan) {
 
     VkViewport viewport{};
     viewport.x = 0.0f;
-    viewport.y = 0.0f;
+    viewport.y = static_cast<float>(vulkan.swapchainExtent.height);
     viewport.width = static_cast<float>(vulkan.swapchainExtent.width);
-    viewport.height = static_cast<float>(vulkan.swapchainExtent.height);
+    viewport.height = -static_cast<float>(vulkan.swapchainExtent.height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(vulkan.commandBuffers[vulkan.currentFrame], 0, 1, &viewport);
@@ -205,6 +207,21 @@ void Renderer::Render(VulkanResources& vulkan) {
         &vulkan.descriptorSets[vulkan.currentFrame],
         0,
         nullptr
+    );
+
+    VkBuffer vertexBuffers[] = {testAsset.GetVertexBuffer().GetBuffer()};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(vulkan.commandBuffers[vulkan.currentFrame], 0, 1, vertexBuffers, offsets);
+
+    testAsset.GetIndexBuffer().Bind(vulkan.commandBuffers[vulkan.currentFrame]);
+
+    vkCmdDrawIndexed(
+        vulkan.commandBuffers[vulkan.currentFrame],
+        testAsset.GetIndexBuffer().GetIndexCount(),
+        1,
+        0,
+        0,
+        0
     );
 
     vkCmdEndRenderPass(vulkan.commandBuffers[vulkan.currentFrame]);
@@ -322,4 +339,51 @@ PipelineManager& Renderer::GetPipelineManager() {
 
 const PipelineManager& Renderer::GetPipelineManager() const {
     return pipelineManager;
+}
+
+void Renderer::CursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
+    if (glfwGetMouseButton(window, camera.mouseButton) == GLFW_PRESS) {
+
+        float deltaX = xpos - camera.lastMouseX;
+        float deltaY = ypos - camera.lastMouseY;
+
+        camera.pitch -= deltaY * 0.005f;
+        camera.yaw += deltaX * 0.005f;
+
+        if (camera.pitch > 1.55f) camera.pitch = 1.55f;
+        if (camera.pitch < -1.55f) camera.pitch = -1.55f;
+
+        camera.lookDirection = glm::normalize(glm::vec3(cos(camera.yaw) * cos(camera.pitch),
+                                                          sin(camera.pitch),
+                                                          sin(camera.yaw) * cos(camera.pitch)));
+    }
+
+    camera.lastMouseX = xpos;
+    camera.lastMouseY = ypos;
+}
+
+void Renderer::UpdateUniformBuffers(VulkanResources& vulkan) {
+    // Update uniform buffer with current camera matrices
+    uniformBufferObject.model = glm::mat4(1.0f);
+    uniformBufferObject.view = camera.view;
+    uniformBufferObject.proj = camera.projection;
+
+    uniformBuffer->Update(&uniformBufferObject, sizeof(uniformBufferObject));
+
+    // Update descriptor set to point to the updated uniform buffer
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = uniformBuffer->GetBuffer();
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(UniformBufferObject);
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = vulkan.descriptorSets[vulkan.currentFrame];
+    write.dstBinding = 0;
+    write.dstArrayElement = 0;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.descriptorCount = 1;
+    write.pBufferInfo = &bufferInfo;
+
+    vkUpdateDescriptorSets(vulkan.device, 1, &write, 0, nullptr);
 }

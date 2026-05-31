@@ -13,6 +13,9 @@
 #include <vector>
 #include <string>
 
+#include "../camera/Camera.h"
+#include "../core/objects/Asset.h"
+
 class Renderer {
 public:
     Renderer() = default;
@@ -28,9 +31,11 @@ public:
     const PipelineManager& GetPipelineManager() const;
 
     bool IsSwapchainOutOfRange() const;
+    static void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 
 private:
     void CreatePipelineLayouts(VulkanResources& vulkan);
+    void UpdateUniformBuffers(VulkanResources& vulkan);
 
     PipelineManager pipelineManager;
     VkPipelineLayout standardPipelineLayout = VK_NULL_HANDLE;
@@ -42,6 +47,10 @@ private:
 
     bool swapchainOutOfDate = false;
     bool initialized = false;
+
+    static Camera camera;
+
+    Asset testAsset;
 };
 
 #endif // MERIDIAN_RENDERER_H

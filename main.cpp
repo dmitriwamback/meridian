@@ -1,5 +1,7 @@
 #include <iostream>
 #include <vulkan/vulkan.h>
+#include <chrono>
+#include <iomanip>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -27,6 +29,13 @@ int main() {
     Renderer renderer;
     renderer.Initialize(window, vulkan);
 
+    glfwSetWindowUserPointer(window, &renderer);
+    glfwSetCursorPosCallback(window, Renderer::CursorPosCallback);
+
+    auto frameStartTime = std::chrono::high_resolution_clock::now();
+    int frameCount = 0;
+    double lastFpsUpdateTime = 0.0;
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
@@ -37,7 +46,24 @@ int main() {
         renderer.Render(vulkan);
 
         glfwSwapBuffers(window);
+
+        frameCount++;
+        double currentTime = glfwGetTime();
+
+        if (currentTime - lastFpsUpdateTime >= 1.0) {
+            double fps = frameCount / (currentTime - lastFpsUpdateTime);
+
+            std::cout << "\rFPS: " << std::fixed << std::setprecision(2) << fps
+                      << " | Frames: " << frameCount
+                      << std::flush;
+
+            frameCount = 0;
+            lastFpsUpdateTime = currentTime;
+        }
     }
+
+    // Print final FPS
+    std::cout << std::endl;
 
     vkDeviceWaitIdle(vulkan.device);
     renderer.Cleanup(vulkan);

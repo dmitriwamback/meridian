@@ -10,7 +10,7 @@
 std::vector<VkVertexInputBindingDescription> StandardPipeline::GetBindingDescriptions() {
     std::vector<VkVertexInputBindingDescription> bindingDescriptions(1);
     bindingDescriptions[0].binding = 0;
-    bindingDescriptions[0].stride = sizeof(float) * 8;  // pos(3) + normal(3) + uv(2) = 8 floats
+    bindingDescriptions[0].stride = sizeof(float) * 8;
     bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
     return bindingDescriptions;
 }
@@ -92,7 +92,7 @@ void StandardPipeline::Create(
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 
