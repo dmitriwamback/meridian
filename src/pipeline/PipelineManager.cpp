@@ -4,6 +4,7 @@
 
 #include "PipelineManager.h"
 #include <stdexcept>
+#include <iostream>
 
 PipelineManager::~PipelineManager() {
 }
@@ -128,6 +129,101 @@ const GBufferPipeline* PipelineManager::GetGBufferPipeline(const std::string& na
         throw std::runtime_error("G-buffer pipeline '" + name + "' not found!");
     }
     return it->second.get();
+}
+
+void PipelineManager::CreateBloomDownsamplePipeline(
+    const std::string& name,
+    VkDevice device,
+    VkPipelineLayout pipelineLayout,
+    const std::string& computeShaderPath
+) {
+    auto pipeline = std::make_unique<BloomDownsamplePipeline>();
+    pipeline->Create(device, pipelineLayout, computeShaderPath);
+    bloomDownsamplePipelines[name] = std::move(pipeline);
+    this->device = device;
+}
+
+void PipelineManager::CreateBloomUpsamplePipeline(
+    const std::string& name,
+    VkDevice device,
+    VkPipelineLayout pipelineLayout,
+    const std::string& computeShaderPath
+) {
+    auto pipeline = std::make_unique<BloomUpsamplePipeline>();
+    pipeline->Create(device, pipelineLayout, computeShaderPath);
+    bloomUpsamplePipelines[name] = std::move(pipeline);
+    this->device = device;
+}
+
+void PipelineManager::CreateBloomHorizontalBlurPipeline(
+    const std::string& name,
+    VkDevice device,
+    VkPipelineLayout pipelineLayout,
+    const std::string& computeShaderPath
+) {
+    auto pipeline = std::make_unique<BloomHorizontalBlurPipeline>();
+    pipeline->Create(device, pipelineLayout, computeShaderPath);
+    bloomHorizontalBlurPipelines[name] = std::move(pipeline);
+    this->device = device;
+}
+
+void PipelineManager::CreateBloomVerticalBlurPipeline(
+    const std::string& name,
+    VkDevice device,
+    VkPipelineLayout pipelineLayout,
+    const std::string& computeShaderPath
+) {
+    auto pipeline = std::make_unique<BloomVerticalBlurPipeline>();
+    pipeline->Create(device, pipelineLayout, computeShaderPath);
+    bloomVerticalBlurPipelines[name] = std::move(pipeline);
+    this->device = device;
+}
+
+void PipelineManager::CreateCompositePipeline(
+    const std::string& name,
+    VkDevice device,
+    VkRenderPass renderPass,
+    VkPipelineLayout pipelineLayout,
+    const std::string& vertexShaderPath,
+    const std::string& fragmentShaderPath
+) {
+    if (compositePipelines.find(name) != compositePipelines.end()) {
+        throw std::runtime_error("Composite pipeline with name '" + name + "' already exists!");
+    }
+
+    this->device = device;
+
+    auto pipeline = std::make_unique<CompositePipeline>();
+    pipeline->Create(device, renderPass, pipelineLayout, vertexShaderPath, fragmentShaderPath);
+    compositePipelines[name] = std::move(pipeline);
+}
+
+CompositePipeline* PipelineManager::GetCompositePipeline(const std::string& name) {
+    auto it = compositePipelines.find(name);
+    if (it == compositePipelines.end()) {
+        throw std::runtime_error("Composite pipeline '" + name + "' not found!");
+    }
+    return it->second.get();
+}
+
+BloomDownsamplePipeline* PipelineManager::GetBloomDownsamplePipeline(const std::string& name) {
+    auto it = bloomDownsamplePipelines.find(name);
+    return (it != bloomDownsamplePipelines.end()) ? it->second.get() : nullptr;
+}
+
+BloomUpsamplePipeline* PipelineManager::GetBloomUpsamplePipeline(const std::string& name) {
+    auto it = bloomUpsamplePipelines.find(name);
+    return (it != bloomUpsamplePipelines.end()) ? it->second.get() : nullptr;
+}
+
+BloomHorizontalBlurPipeline* PipelineManager::GetBloomHorizontalBlurPipeline(const std::string& name) {
+    auto it = bloomHorizontalBlurPipelines.find(name);
+    return (it != bloomHorizontalBlurPipelines.end()) ? it->second.get() : nullptr;
+}
+
+BloomVerticalBlurPipeline* PipelineManager::GetBloomVerticalBlurPipeline(const std::string& name) {
+    auto it = bloomVerticalBlurPipelines.find(name);
+    return (it != bloomVerticalBlurPipelines.end()) ? it->second.get() : nullptr;
 }
 
 bool PipelineManager::HasPipeline(const std::string& name) const {

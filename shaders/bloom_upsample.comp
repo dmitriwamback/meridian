@@ -1,0 +1,44 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D uBloomTexture;
+layout(set = 0, binding = 1) uniform writeonly image2D uOutputTexture;
+
+layout(set = 1, binding = 0) uniform UpsampleUniforms {
+    vec2 bloomResolution;
+    vec2 outputResolution;
+    vec2 bloomTexelSize;
+    float filterRadius;
+};
+
+void main() {
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+
+    if (coord.x >= int(outputResolution.x) || coord.y >= int(outputResolution.y)) {
+        return;
+    }
+
+    vec2 texCoord = vec2(coord) * bloomTexelSize * 2.0;
+
+    // 3x3 Tent filter
+    vec3 sum = vec3(0.0);
+
+    sum += texture(uBloomTexture, texCoord).rgb * 4.0;
+    sum += texture(uBloomTexture, texCoord + vec2(-bloomTexelSize.x, bloomTexelSize.y)).rgb * 2.0;
+    sum += texture(uBloomTexture, texCoord + vec2(0.0, bloomTexelSize.y)).rgb * 2.0;
+    sum += texture(uBloomTexture, texCoord + vec2(bloomTexelSize.x, bloomTexelSize.y)).rgb * 2.0;
+    sum += texture(uBloomTexture, texCoord + vec2(-bloomTexelSize.x, 0.0)).rgb * 2.0;
+    sum += texture(uBloomTexture, texCoord + vec2(bloomTexelSize.x, 0.0)).rgb * 2.0;
+    sum += texture(uBloomTexture, texCoord + vec2(-bloomTexelSize.x, -bloomTexelSize.y)).rgb * 2.0;
+    sum += texture(uBloomTexture, texCoord + vec2(0.0, -bloomTexelSize.y)).rgb * 2.0;
+    sum += texture(uBloomTexture, texCoord + vec2(bloomTexelSize.x, -bloomTexelSize.y)).rgb * 2.0;
+    sum += texture(uBloomTexture, texCoord + vec2(-bloomTexelSize.x * 2.0, bloomTexelSize.y * 2.0)).rgb;
+    sum += texture(uBloomTexture, texCoord + vec2(bloomTexelSize.x * 2.0, bloomTexelSize.y * 2.0)).rgb;
+    sum += texture(uBloomTexture, texCoord + vec2(-bloomTexelSize.x * 2.0, -bloomTexelSize.y * 2.0)).rgb;
+    sum += texture(uBloomTexture, texCoord + vec2(bloomTexelSize.x * 2.0, -bloomTexelSize.y * 2.0)).rgb;
+
+    vec3 upsample = sum / 16.0;
+
+    imageStore(uOutputTexture, coord, vec4(upsample, 1.0));
+}

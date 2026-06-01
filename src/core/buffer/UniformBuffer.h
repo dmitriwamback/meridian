@@ -15,6 +15,29 @@ struct UniformBufferObject {
     glm::mat4 proj;
 };
 
+struct BloomDownsampleUniforms {
+    glm::vec2 inputResolution;
+    glm::vec2 outputResolution;
+    glm::vec2 inputTexelSize;
+};
+
+struct BloomUpsampleUniforms {
+    glm::vec2 bloomResolution;
+    glm::vec2 outputResolution;
+    glm::vec2 bloomTexelSize;
+    float filterRadius;
+    float padding[12];  // Pad to 128 bytes
+};
+
+struct BloomBlurUniforms {
+    glm::vec2 inputResolution;
+    glm::vec2 outputResolution;
+    glm::vec2 texelSize;
+    float blurRadius;
+    int blurSamples;
+    int padding[11];  // Pad to 128 bytes
+};
+
 class UniformBuffer {
 public:
     UniformBuffer(VkDevice device, VkPhysicalDeviceMemoryProperties memoryProperties, size_t size);
@@ -34,4 +57,13 @@ private:
     VkDeviceMemory memory = VK_NULL_HANDLE;
     VkDevice device_;
 };
+
+template <typename T>
+void UpdateUniform(VkDevice device, VkDeviceMemory memory, const T& ubo) {
+    void* data = nullptr;
+    vkMapMemory(device, memory, 0, sizeof(T), 0, &data);
+    memcpy(data, &ubo, sizeof(T));
+    vkUnmapMemory(device, memory);
+}
+
 #endif //MERIDIAN_UNIFORMBUFFER_H

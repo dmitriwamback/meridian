@@ -20,6 +20,12 @@ add_executable(meridian
     src/pipeline/types/StandardPipeline.cpp
     src/camera/Camera.cpp
     src/core/objects/Asset.cpp
+
+    src/pipeline/types/bloom/BloomDownsamplePipeline.cpp
+    src/pipeline/types/bloom/BloomHorizontalBlurPipeline.cpp
+    src/pipeline/types/bloom/BloomUpsamplePipeline.cpp
+    src/pipeline/types/bloom/BloomVerticalBlurPipeline.cpp
+    src/pipeline/types/CompositePipeline.cpp
 )
 target_link_libraries(meridian "/opt/homebrew/Cellar/glew/2.2.0_1/lib/libGLEW.dylib")
 target_link_libraries(meridian "/opt/homebrew/Cellar/glfw/3.3.8/lib/libglfw.dylib")
@@ -32,10 +38,16 @@ target_link_libraries(meridian ${OPENGL_FRAMEWORK})
 find_program(GLSLC glslc)
 if(GLSLC)
     set(SHADER_SOURCES
-            shaders/standard_vertex.vert
-            shaders/standard_fragment.frag
-            shaders/gbuffer_vertex.vert
-            shaders/gbuffer_fragment.frag
+        shaders/standard_vertex.vert
+        shaders/standard_fragment.frag
+        shaders/gbuffer_vertex.vert
+        shaders/gbuffer_fragment.frag
+        shaders/bloom_downsample.comp
+        shaders/bloom_upsample.comp
+        shaders/bloom_hblur.comp
+        shaders/bloom_vblur.comp
+        shaders/composite_vertex.vert
+        shaders/composite_fragment.frag
     )
 
     set(SHADER_BINARIES)
