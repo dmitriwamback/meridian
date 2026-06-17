@@ -7,7 +7,7 @@ layout(location = 0) in vec2 inUV;
 layout(location = 0) out vec4 outColor;
 
 vec3 tonemap(vec3 x) {
-    return x / (x + vec3(1.0));
+    return x;
 }
 
 void main() {

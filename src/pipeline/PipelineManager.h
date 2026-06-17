@@ -10,8 +10,6 @@
 #include "types/GBufferPipeline.h"
 #include "types/bloom/BloomDownsamplePipeline.h"
 #include "types/bloom/BloomUpsamplePipeline.h"
-#include "types/bloom/BloomHorizontalBlurPipeline.h"
-#include "types/bloom/BloomVerticalBlurPipeline.h"
 #include "types/CompositePipeline.h"
 
 #include <unordered_map>
@@ -106,8 +104,6 @@ public:
 
     BloomDownsamplePipeline* GetBloomDownsamplePipeline(const std::string& name);
     BloomUpsamplePipeline* GetBloomUpsamplePipeline(const std::string& name);
-    BloomHorizontalBlurPipeline* GetBloomHorizontalBlurPipeline(const std::string& name);
-    BloomVerticalBlurPipeline* GetBloomVerticalBlurPipeline(const std::string& name);
 
     CompositePipeline* GetCompositePipeline(const std::string& name);
 
@@ -121,8 +117,6 @@ private:
     std::unordered_map<std::string, std::unique_ptr<GBufferPipeline>> gbufferPipelines;
     std::unordered_map<std::string, std::unique_ptr<BloomDownsamplePipeline>> bloomDownsamplePipelines;
     std::unordered_map<std::string, std::unique_ptr<BloomUpsamplePipeline>> bloomUpsamplePipelines;
-    std::unordered_map<std::string, std::unique_ptr<BloomHorizontalBlurPipeline>> bloomHorizontalBlurPipelines;
-    std::unordered_map<std::string, std::unique_ptr<BloomVerticalBlurPipeline>> bloomVerticalBlurPipelines;
     std::unordered_map<std::string, std::unique_ptr<CompositePipeline>> compositePipelines;
     VkDevice device = VK_NULL_HANDLE;
 };

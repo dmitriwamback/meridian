@@ -16,7 +16,7 @@ void Camera::Initialize() {
     position = glm::vec3(0.0f, 0.0f, 3.0f);
     lookDirection = glm::vec3(0.0f, 0.0f, -1.0f);
 
-    projection = glm::perspective(glm::radians(60.0f), 1200.0f / 800.0f, 0.1f, 1000.0f);
+    projection = glm::perspective(glm::radians(90.0f), 1200.0f / 800.0f, 0.1f, 1000.0f);
     view = glm::lookAt(position, position + lookDirection, glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
@@ -27,7 +27,7 @@ void Camera::Update(glm::vec4 movement, float up, float down, VulkanResources& r
 
     float aspect = (float)width / (float)height;
 
-    projection = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
+    projection = glm::perspective(glm::radians(90.0f), aspect, 0.1f, 1000.0f);
 
     float forward = movement.x,
           backward = movement.y,

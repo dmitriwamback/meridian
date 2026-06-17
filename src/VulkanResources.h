@@ -5,6 +5,8 @@
 #ifndef MERIDIAN_VULKANRESOURCES_H
 #define MERIDIAN_VULKANRESOURCES_H
 
+constexpr uint32_t IN_FLIGHT_FRAMES = 3;
+
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
@@ -48,6 +50,7 @@ struct VulkanResources {
     VkImage depthImage = VK_NULL_HANDLE;
     VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
     VkImageView depthImageView = VK_NULL_HANDLE;
+    VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 
     uint32_t currentFrame = 0;
 };

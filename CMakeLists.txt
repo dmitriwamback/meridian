@@ -22,9 +22,7 @@ add_executable(meridian
     src/core/objects/Asset.cpp
 
     src/pipeline/types/bloom/BloomDownsamplePipeline.cpp
-    src/pipeline/types/bloom/BloomHorizontalBlurPipeline.cpp
     src/pipeline/types/bloom/BloomUpsamplePipeline.cpp
-    src/pipeline/types/bloom/BloomVerticalBlurPipeline.cpp
     src/pipeline/types/CompositePipeline.cpp
 )
 target_link_libraries(meridian "/opt/homebrew/Cellar/glew/2.2.0_1/lib/libGLEW.dylib")
@@ -44,8 +42,6 @@ if(GLSLC)
         shaders/gbuffer_fragment.frag
         shaders/bloom_downsample.comp
         shaders/bloom_upsample.comp
-        shaders/bloom_hblur.comp
-        shaders/bloom_vblur.comp
         shaders/composite_vertex.vert
         shaders/composite_fragment.frag
     )

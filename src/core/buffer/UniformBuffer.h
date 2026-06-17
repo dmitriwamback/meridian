@@ -15,27 +15,16 @@ struct UniformBufferObject {
     glm::mat4 proj;
 };
 
-struct BloomDownsampleUniforms {
+struct BloomUniforms {
     glm::vec2 inputResolution;
     glm::vec2 outputResolution;
     glm::vec2 inputTexelSize;
-};
-
-struct BloomUpsampleUniforms {
-    glm::vec2 bloomResolution;
-    glm::vec2 outputResolution;
-    glm::vec2 bloomTexelSize;
+    glm::vec2 sourceResolution;
+    glm::vec2 sourceTexelSize;
+    float threshold;
+    float softKnee;
     float filterRadius;
-    float padding[12];  // Pad to 128 bytes
-};
-
-struct BloomBlurUniforms {
-    glm::vec2 inputResolution;
-    glm::vec2 outputResolution;
-    glm::vec2 texelSize;
-    float blurRadius;
-    int blurSamples;
-    int padding[11];  // Pad to 128 bytes
+    float padding;
 };
 
 class UniformBuffer {

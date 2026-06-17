@@ -1,51 +1,60 @@
 #version 450
-
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(set = 0, binding = 0) uniform sampler2D inputTexture;
-layout(set = 0, binding = 1) uniform writeonly image2D outputTexture;
+layout(set = 0, binding = 0) uniform sampler2D uInputTexture;
+layout(set = 0, binding = 1, rgba16f) uniform writeonly image2D uOutputTexture;
 
-layout(set = 1, binding = 0) uniform DownsampleUniforms {
+layout(std140, set = 1, binding = 0) uniform BloomUniforms{
     vec2 inputResolution;
     vec2 outputResolution;
     vec2 inputTexelSize;
+
+    vec2 srcResolution;
+    vec2 srcTexelSize;
+
+    float threshold;
+    float softKnee;
+    float filterRadius;
+    float padding;
 };
+vec3 extractBloom(vec3 c) {
+    float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    float knee = threshold * softKnee;
+    float soft = smoothstep(threshold - knee, threshold + knee, lum);
+    return max(c - vec3(threshold), vec3(0.0)) * soft;
+}
 
 void main() {
-    vec2 texCoord = gl_GlobalInvocationID.xy * inputTexelSize;
-
-    // Prevent samples from going out of bounds
-    if (gl_GlobalInvocationID.x >= uint(outputResolution.x) ||
-        gl_GlobalInvocationID.y >= uint(outputResolution.y)) {
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    if (coord.x >= int(outputResolution.x) || coord.y >= int(outputResolution.y)) {
         return;
     }
 
-    vec2 x = vec2(inputTexelSize.x * 2.0, 0.0);
-    vec2 y = vec2(0.0, inputTexelSize.y * 2.0);
+    vec2 texCoord = (vec2(coord) + vec2(0.5)) / outputResolution;
+    vec2 x = vec2(inputTexelSize.x, 0.0);
+    vec2 y = vec2(0.0, inputTexelSize.y);
 
-    // Box13Tap 13-tap downsample filter
-    vec3 a = texture(inputTexture, vec2(texCoord.x - 2.0 * x.x, texCoord.y + 2.0 * y.y)).rgb;
-    vec3 b = texture(inputTexture, vec2(texCoord.x, texCoord.y + 2.0 * y.y)).rgb;
-    vec3 c = texture(inputTexture, vec2(texCoord.x + 2.0 * x.x, texCoord.y + 2.0 * y.y)).rgb;
-    vec3 d = texture(inputTexture, vec2(texCoord.x - 2.0 * x.x, texCoord.y)).rgb;
-    vec3 e = texture(inputTexture, texCoord).rgb;
-    vec3 f = texture(inputTexture, vec2(texCoord.x + 2.0 * x.x, texCoord.y)).rgb;
-    vec3 g = texture(inputTexture, vec2(texCoord.x - 2.0 * x.x, texCoord.y - 2.0 * y.y)).rgb;
-    vec3 h = texture(inputTexture, vec2(texCoord.x, texCoord.y - 2.0 * y.y)).rgb;
-    vec3 i = texture(inputTexture, vec2(texCoord.x + 2.0 * x.x, texCoord.y - 2.0 * y.y)).rgb;
-    vec3 j = texture(inputTexture, vec2(texCoord.x - x.x, texCoord.y + y.y)).rgb;
-    vec3 k = texture(inputTexture, vec2(texCoord.x + x.x, texCoord.y + y.y)).rgb;
-    vec3 l = texture(inputTexture, vec2(texCoord.x - x.x, texCoord.y - y.y)).rgb;
-    vec3 m = texture(inputTexture, vec2(texCoord.x + x.x, texCoord.y - y.y)).rgb;
+    vec3 a = texture(uInputTexture, texCoord + vec2(-2.0,  2.0) * inputTexelSize).rgb;
+    vec3 b = texture(uInputTexture, texCoord + vec2( 0.0,  2.0) * inputTexelSize).rgb;
+    vec3 c = texture(uInputTexture, texCoord + vec2( 2.0,  2.0) * inputTexelSize).rgb;
 
-    // Weighted average with Box13Tap weights
+    vec3 d = texture(uInputTexture, texCoord + vec2(-2.0,  0.0) * inputTexelSize).rgb;
+    vec3 e = texture(uInputTexture, texCoord).rgb;
+    vec3 f = texture(uInputTexture, texCoord + vec2( 2.0,  0.0) * inputTexelSize).rgb;
+
+    vec3 g = texture(uInputTexture, texCoord + vec2(-2.0, -2.0) * inputTexelSize).rgb;
+    vec3 h = texture(uInputTexture, texCoord + vec2( 0.0, -2.0) * inputTexelSize).rgb;
+    vec3 i = texture(uInputTexture, texCoord + vec2( 2.0, -2.0) * inputTexelSize).rgb;
+
+    vec3 j = texture(uInputTexture, texCoord + vec2(-1.0,  1.0) * inputTexelSize).rgb;
+    vec3 k = texture(uInputTexture, texCoord + vec2( 1.0,  1.0) * inputTexelSize).rgb;
+    vec3 l = texture(uInputTexture, texCoord + vec2(-1.0, -1.0) * inputTexelSize).rgb;
+    vec3 m = texture(uInputTexture, texCoord + vec2( 1.0, -1.0) * inputTexelSize).rgb;
+
     vec3 downsample = e * 0.125;
     downsample += (a + c + g + i) * 0.03125;
     downsample += (b + d + f + h) * 0.0625;
     downsample += (j + k + l + m) * 0.125;
 
-    // Prevent black boxes (minimum luminance)
-    downsample = max(downsample, vec3(0.0001));
-
-    imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(downsample, 1.0));
+    imageStore(uOutputTexture, coord, vec4(downsample, 1.0));
 }

@@ -11,6 +11,8 @@
 #include <string>
 #include <set>
 
+#include "../VulkanResources.h"
+
 namespace Meridian {
 
 struct QueueFamilyIndices {
@@ -42,7 +44,8 @@ public:
         const std::string& engineName,
         uint32_t appVersion,
         uint32_t engineVersion,
-        uint32_t apiVersion
+        uint32_t apiVersion,
+        VulkanResources& resources
     );
 
     static void DestroyInstance(VkInstance instance);
@@ -112,7 +115,7 @@ public:
         VkDevice device,
         VkCommandPool commandPool,
         std::vector<VkCommandBuffer>& commandBuffers,
-        uint32_t count = 2
+        uint32_t count = IN_FLIGHT_FRAMES
     );
 
     static void DestroyCommandBuffers(VkDevice device, VkCommandPool commandPool,
@@ -123,7 +126,7 @@ public:
         std::vector<VkSemaphore>& imageAvailableSemaphores,
         std::vector<VkSemaphore>& renderCompleteSemaphores,
         std::vector<VkFence>& inFlightFences,
-        uint32_t count = 2
+        uint32_t count = IN_FLIGHT_FRAMES
     );
 
     static void DestroySyncObjects(VkDevice device,
@@ -250,6 +253,14 @@ public:
         VkImageView& depthImageView
     );
 
+    static void BloomImageLayoutTransition(
+        VkCommandBuffer commandBuffer,
+        VkImage image,
+        uint32_t mipLevel,
+        VkImageLayout oldLayout,
+        VkImageLayout newLayout
+    );
+
 private:
     static bool CheckValidationLayerSupport();
     static bool IsPhysicalDeviceSuitable(
@@ -257,12 +268,6 @@ private:
         VkSurfaceKHR surface
     );
     static std::vector<const char*> GetRequiredInstanceExtensions();
-
-#if defined(__APPLE__)
-    static constexpr bool ENABLE_VALIDATION_LAYERS = false;
-#else
-    static constexpr bool ENABLE_VALIDATION_LAYERS = true;
-#endif
 
     static const std::vector<const char*> VALIDATION_LAYERS;
     static const std::vector<const char*> DEVICE_EXTENSIONS;

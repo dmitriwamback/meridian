@@ -19,8 +19,6 @@
 
 #include "VulkanResources.h"
 
-constexpr uint32_t IN_FLIGHT_FRAMES = 2;
-
 #define ENABLE_VALIDATION_LAYERS true
 
 #if defined(__APPLE__)
@@ -33,6 +31,29 @@ const std::vector<const char*> VALIDATION_LAYERS = {
     "VK_LAYER_KHRONOS_validation"
 };
 
+static bool CheckValidationLayerSupport() {
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    for (const char* layerName : VALIDATION_LAYERS) {
+        bool found = false;
+
+        for (const auto& layer : availableLayers) {
+            if (strcmp(layerName, layer.layerName) == 0) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) return false;
+    }
+
+    return true;
+}
+
 void Initialize(GLFWwindow* window, VulkanResources& resources) {
 
     resources.window = window;
@@ -42,7 +63,8 @@ void Initialize(GLFWwindow* window, VulkanResources& resources) {
         "No Engine",
         VK_MAKE_VERSION(1, 0, 0),
         VK_MAKE_VERSION(1, 0, 0),
-        VK_API_VERSION_1_2
+        VK_API_VERSION_1_2,
+        resources
     );
 
     if (glfwCreateWindowSurface(resources.instance, window, nullptr, &resources.surface) != VK_SUCCESS) {

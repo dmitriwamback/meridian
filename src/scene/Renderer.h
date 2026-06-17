@@ -61,31 +61,42 @@ private:
 
     Asset testAsset;
 
-    std::vector<VkImage> bloomImages;
-    std::vector<VkImageView> bloomImageViews;
-    std::vector<VkDeviceMemory> bloomImageMemories;
+    std::vector<VkImage> hdrColorImage;
+    std::vector<VkImageView> hdrColorImageView;
+    std::vector<VkDeviceMemory> hdrColorImageMemory;
+
+    std::vector<std::vector<VkImage>> bloomImages;
+    std::vector<std::vector<VkImageView>> bloomImageViews;
+    std::vector<std::vector<VkDeviceMemory>> bloomImageMemories;
+    std::vector<std::vector<VkImageLayout>> bloomMipLayouts;
     std::vector<VkDescriptorSet> bloomDescriptorSets;
     uint32_t bloomMipLevels = 5;
 
     std::vector<VkBuffer> bloomUniformBuffers;
     std::vector<VkDeviceMemory> bloomUniformBufferMemories;
 
+    std::vector<std::vector<VkBuffer>>       bloomDownsampleUniformBuffers;
+    std::vector<std::vector<VkDeviceMemory>> bloomDownsampleUniformMemories;
+    std::vector<std::vector<VkDescriptorSet>> bloomDownsampleUniformSets;
+
+    std::vector<std::vector<VkBuffer>>       bloomUpsampleUniformBuffers;
+    std::vector<std::vector<VkDeviceMemory>> bloomUpsampleUniformMemories;
+    std::vector<std::vector<VkDescriptorSet>> bloomUpsampleUniformSets;
+
     void CreateBloomUniformBuffers(VulkanResources& vulkan);
-    void UpdateBloomUniformBuffers(VulkanResources& vulkan);
     //void CleanupBloomUniformBuffers(VulkanResources& vulkan);
 
     VkRenderPass hdrRenderPass = VK_NULL_HANDLE;
-    VkFramebuffer hdrFramebuffer = VK_NULL_HANDLE;
-    VkImage hdrColorImage = VK_NULL_HANDLE;
-    VkImageView hdrColorImageView = VK_NULL_HANDLE;
-    VkDeviceMemory hdrColorImageMemory = VK_NULL_HANDLE;
+    std::vector<VkFramebuffer> hdrFramebuffers;
     VkImage hdrDepthImage = VK_NULL_HANDLE;
     VkImageView hdrDepthImageView = VK_NULL_HANDLE;
     VkDeviceMemory hdrDepthImageMemory = VK_NULL_HANDLE;
     VkSampler hdrSampler = VK_NULL_HANDLE;
     VkSampler bloomSampler = VK_NULL_HANDLE;
 
-    VkDescriptorSet compositeDescriptorSet = VK_NULL_HANDLE;
+    VkDescriptorSet compositeDescriptorSets[IN_FLIGHT_FRAMES];
+
+    VkExtent2D bloomBaseExtent;
 
     void CreateHDRRenderPass(VulkanResources& vulkan);
     void CreateHDRFramebuffer(VulkanResources& vulkan);
@@ -95,10 +106,19 @@ private:
     void CreateHDRSampler(VulkanResources& vulkan);
 
     void CreateCompositeDescriptorSet(VulkanResources& vulkan);
+    void InitializeBloomDescriptorSets(VulkanResources& vulkan);
+    void CreateBloomPipelineLayout(VulkanResources& vulkan);
 
     VkDescriptorPool bloomDescriptorPool = VK_NULL_HANDLE;
     VkDescriptorPool compositeDescriptorPool = VK_NULL_HANDLE;
+    VkDescriptorPool bloomUniformDescriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> bloomUniformDescriptorSets;
+    std::vector<VkDescriptorSet> bloomDescriptorSetsDownsample;
+    std::vector<VkDescriptorSet> bloomDescriptorSetsUpsample;
+
+    VkDescriptorPool        bloomInlinePool;
+    VkDescriptorSetLayout   bloomSamplerStorageLayout;
+    VkDescriptorSetLayout   bloomUniformLayout;
 };
 
 #endif // MERIDIAN_RENDERER_H
